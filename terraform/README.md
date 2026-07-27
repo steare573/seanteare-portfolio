@@ -5,6 +5,10 @@ ACM certificate, Route 53 zone, and the GitHub OIDC roles the pipeline uses.
 
 **Nothing here has been applied yet.**
 
+> Doing the first deployment? Follow
+> [pre-initial-deployment.md](./pre-initial-deployment.md) — it covers the
+> bootstrap ordering, why the first run has to be local, and the DNS cutover.
+
 ## What it manages
 
 | Resource | State |
