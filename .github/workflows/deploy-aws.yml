@@ -1,0 +1,71 @@
+name: Deploy to AWS
+
+# Manual-only until the cutover is done. The site still has base
+# '/seanteare-portfolio' in astro.config.mjs, so a build published to
+# seanteare.com right now would 404 on every asset.
+#
+# At cutover, after astro.config.mjs is updated, replace workflow_dispatch with:
+#   push:
+#     branches: [main]
+# and delete .github/workflows/deploy.yml (the GitHub Pages one).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # required for OIDC
+
+concurrency:
+  group: deploy-aws
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      # Two passes, because the right cache header differs by file type.
+      #
+      # Astro fingerprints everything under _astro/ (app.Dg2VxUYT.css), so those
+      # are safe to cache forever — a change produces a new filename. HTML keeps
+      # the same URL across deploys, so it must revalidate or visitors keep
+      # seeing stale pages pointing at deleted asset names.
+      - name: Sync fingerprinted assets
+        run: |
+          aws s3 sync dist/ "s3://${{ vars.AWS_SITE_BUCKET }}/" \
+            --delete \
+            --cache-control "public,max-age=31536000,immutable" \
+            --exclude "*.html" --exclude "*.xml" --exclude "*.txt"
+
+      - name: Sync HTML and text assets
+        run: |
+          aws s3 sync dist/ "s3://${{ vars.AWS_SITE_BUCKET }}/" \
+            --cache-control "public,max-age=0,must-revalidate" \
+            --exclude "*" \
+            --include "*.html" --include "*.xml" --include "*.txt"
+
+      # "/*" counts as a single path, so this stays inside the 1,000
+      # free invalidation paths per month.
+      - name: Invalidate CloudFront
+        run: |
+          ID=$(aws cloudfront create-invalidation \
+            --distribution-id "${{ vars.AWS_DISTRIBUTION_ID }}" \
+            --paths "/*" --query 'Invalidation.Id' --output text)
+          echo "Invalidation $ID created"
+          aws cloudfront wait invalidation-completed \
+            --distribution-id "${{ vars.AWS_DISTRIBUTION_ID }}" --id "$ID"

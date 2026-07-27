@@ -1,0 +1,8 @@
+domain_name     = "seanteare.com"
+www_domain      = "www.seanteare.com"
+bucket_name     = "seanteare.com"
+distribution_id = "E187XNVZFLAXPG"
+github_repo     = "steare573/seanteare-portfolio"
+github_branch   = "main"
+aws_region      = "us-east-1"
+price_class     = "PriceClass_100"

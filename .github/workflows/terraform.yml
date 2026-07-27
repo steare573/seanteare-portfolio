@@ -1,0 +1,68 @@
+name: Terraform
+
+on:
+  pull_request:
+    paths: ['terraform/**', '.github/workflows/terraform.yml']
+  push:
+    branches: [main]
+    paths: ['terraform/**', '.github/workflows/terraform.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # required for OIDC
+
+defaults:
+  run:
+    working-directory: terraform
+
+jobs:
+  # Runs on PRs with NO cloud credentials. The OIDC trust policy is pinned to
+  # refs/heads/main, so a PR cannot assume the role — by design. Formatting and
+  # schema validation still catch most mistakes before merge.
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.10.5'
+
+      - name: Format check
+        run: terraform fmt -check -recursive -diff
+
+      - name: Validate
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+  plan_apply:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    # Add required reviewers to this environment in repo settings so an apply
+    # cannot reach production unattended.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.10.5'
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - run: terraform init
+
+      - name: Plan
+        id: plan
+        run: terraform plan -input=false -out=tfplan
+
+      # Applies the saved plan, so what was reviewed is exactly what runs.
+      - name: Apply
+        if: github.event_name == 'push'
+        run: terraform apply -input=false -auto-approve tfplan

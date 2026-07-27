@@ -16,5 +16,20 @@ dist/
 .env
 .env.production
 
+# Terraform. State can contain resource metadata and must never be committed —
+# it lives in the S3 backend. .terraform.lock.hcl IS committed on purpose so
+# provider versions are pinned across machines and CI.
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
 # gstack tooling scratch (contains local auth tokens — never commit)
 .gstack/
