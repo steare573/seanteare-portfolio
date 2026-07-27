@@ -52,9 +52,15 @@ jobs:
             --cache-control "public,max-age=31536000,immutable" \
             --exclude "*.html" --exclude "*.xml" --exclude "*.txt"
 
+      # --delete is required on BOTH passes. Each pass only considers the files
+      # its filters select, so a pass that excludes *.html will not delete stale
+      # *.html at the destination. Without this, removed pages stay live
+      # forever — the first deploy left five pages from a 2017 Gatsby site
+      # serving 200s.
       - name: Sync HTML and text assets
         run: |
           aws s3 sync dist/ "s3://${{ vars.AWS_SITE_BUCKET }}/" \
+            --delete \
             --cache-control "public,max-age=0,must-revalidate" \
             --exclude "*" \
             --include "*.html" --include "*.xml" --include "*.txt"
