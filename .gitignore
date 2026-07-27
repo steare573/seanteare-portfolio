@@ -1,0 +1,20 @@
+# Build output & deps
+node_modules/
+dist/
+.astro/
+
+# macOS
+.DS_Store
+._*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Env
+.env
+.env.production
+
+# gstack tooling scratch (contains local auth tokens — never commit)
+.gstack/

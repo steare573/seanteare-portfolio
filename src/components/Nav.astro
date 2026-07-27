@@ -1,0 +1,35 @@
+---
+import { path, sectionOf } from '../lib/paths';
+
+const section = sectionOf(Astro.url.pathname);
+
+const LINKS = [
+  { label: 'Home', href: path('/'), key: 'home' },
+  { label: 'Résumé', href: path('/resume'), key: 'resume' },
+  { label: 'Blog', href: path('/blog'), key: 'blog' },
+  { label: 'Contact', href: path('/contact'), key: 'contact' },
+];
+
+const ACTIVE = 'color: var(--color-accent-700); font-weight: 700;';
+const INACTIVE = 'color: var(--color-text); font-weight: 500;';
+---
+
+<nav
+  class="nav"
+  style="position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--color-bg) 92%, transparent); backdrop-filter: blur(6px); margin: 0 clamp(-20px, -5vw, -64px); padding-inline: clamp(20px, 5vw, 64px);"
+>
+  <a class="nav-brand site-link" href={path('/')}>Sean Teare</a>
+  {
+    LINKS.map((link) => (
+      <a
+        class="site-link"
+        href={link.href}
+        style={section === link.key ? ACTIVE : INACTIVE}
+        aria-current={section === link.key ? 'page' : undefined}
+      >
+        {link.label}
+      </a>
+    ))
+  }
+  <a class="btn btn-primary" href={path('/contact')} style="text-decoration: none;">Get in touch</a>
+</nav>

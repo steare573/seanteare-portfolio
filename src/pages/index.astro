@@ -1,0 +1,182 @@
+---
+import { Image } from 'astro:assets';
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import headshot from '../assets/img/headshot.webp';
+import { SKILLS, STATS, HOME_ROLES } from '../data/resume';
+import { path } from '../lib/paths';
+---
+
+<Base title="Sean Teare — Fellow Engineer & Technical Leader">
+  <main>
+    <section style="position: relative; padding: 72px 0 48px; overflow: hidden;">
+      <div
+        style="position: absolute; right: -140px; top: -180px; width: 380px; height: 380px; border-radius: 50%; background: var(--color-accent-2-200); z-index: -1;"
+      >
+      </div>
+      <span
+        style="display: block; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 16px;"
+        >Fellow Engineer &amp; Technical Leader</span
+      >
+      <h1
+        style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(40px, 6vw, 72px); line-height: 1.05; margin: 0 0 24px; margin-left: -0.02em;"
+      >
+        Sean Teare
+      </h1>
+      <p
+        style="font-size: 19px; line-height: 1.65; max-width: 62ch; margin: 0 0 32px; color: color-mix(in srgb, var(--color-text) 85%, transparent);"
+      >
+        15+ years architecting distributed systems, cloud-native APIs, and full-stack platforms — now
+        building the agentic, AI-native workflows that carry software from idea to shipped code.
+      </p>
+      <div style="display: flex; gap: var(--space-3); flex-wrap: wrap; margin-bottom: 28px;">
+        <a class="btn btn-primary" href={path('/resume')} style="text-decoration: none;">View résumé</a>
+        <a class="btn btn-ghost" href={path('/blog')} style="text-decoration: none;">Read the blog</a>
+      </div>
+      <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+        <a
+          class="icon-link"
+          href="https://github.com/steare573"
+          target="_blank"
+          rel="noopener"
+          aria-label="GitHub"
+          style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: var(--color-neutral-100); color: var(--color-text);"
+        >
+          <Icon name="github" />
+        </a>
+        <a
+          class="icon-link"
+          href="https://www.linkedin.com/in/sean-teare-4b166577/"
+          target="_blank"
+          rel="noopener"
+          aria-label="LinkedIn"
+          style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: var(--color-neutral-100); color: var(--color-text);"
+        >
+          <Icon name="linkedin" />
+        </a>
+        <a
+          class="icon-link"
+          href="mailto:steare573@gmail.com"
+          aria-label="Email"
+          style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: var(--color-neutral-100); color: var(--color-text);"
+        >
+          <Icon name="mail" />
+        </a>
+      </div>
+    </section>
+
+    <section style="padding: 24px 0 56px; display: flex; gap: 20px; flex-wrap: wrap;">
+      {
+        STATS.map((stat) => (
+          <div
+            style={`width: 160px; height: 160px; border-radius: 50%; display: grid; place-content: center; text-align: center; padding: 16px; box-sizing: border-box; background: ${stat.bg};`}
+          >
+            <p
+              style={`font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 34px; margin: 0; color: ${stat.color};`}
+            >
+              {stat.value}
+            </p>
+            <p style="font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600; margin: 6px 0 0; color: color-mix(in srgb, var(--color-text) 70%, transparent); max-width: 15ch; margin-inline: auto;">
+              {stat.label}
+            </p>
+          </div>
+        ))
+      }
+    </section>
+
+    <section style="padding: 24px 0 56px;">
+      <span
+        style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 20px;"
+        >What I bring</span
+      >
+      {
+        SKILLS.map((grp) => (
+          <div style="padding: 20px 0; display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 16px 40px; align-items: start;">
+            <h3 style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 22px; margin: 0; position: relative; padding-left: 26px;">
+              <span style="position: absolute; left: 0; top: 8px; width: 14px; height: 14px; border-radius: 50%; background: var(--color-accent); display: inline-block;" />
+              {grp.name}
+            </h3>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              {grp.items.map((item) => (
+                <span class={`tag ${grp.tagClass}`}>{item}</span>
+              ))}
+            </div>
+          </div>
+        ))
+      }
+    </section>
+
+    <section style="padding: 24px 0 56px;">
+      <span
+        style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 20px;"
+        >Recent roles</span
+      >
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
+        {
+          HOME_ROLES.map((role) => (
+            <div class="card elev-sm">
+              <div class="card-kicker">{role.company}</div>
+              <div class="card-title">{role.title}</div>
+              <p class="card-body">{role.blurb}</p>
+            </div>
+          ))
+        }
+      </div>
+      <div style="margin-top: 24px;">
+        <a class="btn btn-secondary" href={path('/resume')} style="text-decoration: none;">See the full résumé</a>
+      </div>
+    </section>
+
+    <section
+      style="display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 28px 64px; align-items: center; padding: 32px 0 56px;"
+    >
+      <div>
+        <span
+          style="display: block; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); margin: 0 0 16px;"
+          >How I work</span
+        >
+        <h2
+          style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 30px; line-height: 1.3; margin: 0 0 16px;"
+        >
+          Hands-on when it matters, hands-off leadership the rest of the time
+        </h2>
+        <p
+          style="font-size: 16px; line-height: 1.65; margin: 0; max-width: 52ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);"
+        >
+          A trusted partner to product, DevOps, and platform peers — equally effective leading
+          engineering and delivery organizations as contributing hands-on at the keyboard, from
+          Fortune 100 API platforms to fast-moving startups.
+        </p>
+      </div>
+      <figure
+        class="washed"
+        style="margin: 0; width: min(320px, 100%); justify-self: end; border-radius: 32px; overflow: hidden;"
+      >
+        <Image
+          src={headshot}
+          alt="Headshot of Sean Teare"
+          widths={[320, 640]}
+          sizes="320px"
+          style="width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; display: block;"
+        />
+      </figure>
+    </section>
+
+    <section style="padding: 8px 0 40px;">
+      <div style="background: var(--color-accent-2-100); border-radius: 32px; padding: 40px clamp(24px, 4vw, 56px);">
+        <h3
+          style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 26px; margin: 0 0 12px;"
+        >
+          Let's build something worth shipping
+        </h3>
+        <p
+          style="font-size: 15.5px; line-height: 1.65; margin: 0 0 24px; max-width: 58ch; color: color-mix(in srgb, var(--color-text) 78%, transparent);"
+        >
+          Open to conversations about platform architecture, engineering leadership, or AI-native
+          delivery.
+        </p>
+        <a class="btn btn-primary" href={path('/contact')} style="text-decoration: none;">Get in touch</a>
+      </div>
+    </section>
+  </main>
+</Base>

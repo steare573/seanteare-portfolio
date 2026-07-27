@@ -1,0 +1,78 @@
+---
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+
+const CHANNELS = [
+  {
+    icon: 'mail' as const,
+    kicker: 'Email',
+    value: 'steare573@gmail.com',
+    href: 'mailto:steare573@gmail.com',
+    external: false,
+    bg: 'var(--color-accent-100)',
+    color: 'var(--color-accent-700)',
+  },
+  {
+    icon: 'linkedin' as const,
+    kicker: 'LinkedIn',
+    value: 'linkedin.com/in/sean-teare-4b166577',
+    href: 'https://www.linkedin.com/in/sean-teare-4b166577/',
+    external: true,
+    bg: 'var(--color-accent-2-100)',
+    color: 'var(--color-accent-2-800)',
+  },
+  {
+    icon: 'github' as const,
+    kicker: 'GitHub',
+    value: 'github.com/steare573',
+    href: 'https://github.com/steare573',
+    external: true,
+    bg: 'var(--color-neutral-100)',
+    color: 'var(--color-text)',
+  },
+];
+---
+
+<Base
+  title="Contact — Sean Teare"
+  description="Get in touch with Sean Teare about platform architecture, engineering leadership, or AI-native delivery."
+>
+  <main style="padding: 56px 0 0; max-width: 68ch;">
+    <h1
+      style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(34px, 4.5vw, 48px); margin: 0 0 16px;"
+    >
+      Let's talk
+    </h1>
+    <p
+      style="font-size: 17px; line-height: 1.65; margin: 0 0 40px; color: color-mix(in srgb, var(--color-text) 82%, transparent);"
+    >
+      I'm always glad to hear about ambitious platform problems, engineering-leadership roles, or
+      teams navigating AI-native delivery. The fastest way to reach me is email.
+    </p>
+    <div style="display: grid; gap: 14px;">
+      {
+        CHANNELS.map((c) => (
+          <a
+            href={c.href}
+            target={c.external ? '_blank' : undefined}
+            rel={c.external ? 'noopener' : undefined}
+            class="card elev-sm"
+            style="display: flex; align-items: center; gap: 16px; text-decoration: none; color: inherit;"
+          >
+            <span
+              style={`display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: ${c.bg}; color: ${c.color}; flex-shrink: 0;`}
+            >
+              <Icon name={c.icon} size={20} />
+            </span>
+            <span>
+              <span class="card-kicker">{c.kicker}</span>
+              <span class="card-title" style="display: block;">
+                {c.value}
+              </span>
+            </span>
+          </a>
+        ))
+      }
+    </div>
+  </main>
+</Base>

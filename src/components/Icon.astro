@@ -1,0 +1,39 @@
+---
+/** Inline icon set (Lucide-style strokes), matched to the original design. */
+const PATHS = {
+  github:
+    '<path d="M15 22v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 19 4.77 5.07 5.07 0 0 0 18.91.61S17.73.25 15 2.09a13.38 13.38 0 0 0-7 0Q4.29.25 3.1.61A5.07 5.07 0 0 0 3 4.77a5.44 5.44 0 0 0-1.5 3.75c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 7 18.13V22"></path>',
+  linkedin:
+    '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect width="4" height="12" x="2" y="9"></rect><circle cx="4" cy="4" r="2"></circle>',
+  mail: '<rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>',
+  phone:
+    '<path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"></path>',
+  download:
+    '<path d="M12 15V3"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path>',
+  'arrow-right': '<path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path>',
+};
+
+interface Props {
+  name: keyof typeof PATHS;
+  size?: number;
+  class?: string;
+  style?: string;
+}
+
+const { name, size = 18, class: className, style } = Astro.props;
+---
+
+<svg
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2.75"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  class={className}
+  style={style}
+  aria-hidden="true"
+  set:html={PATHS[name]}
+/>

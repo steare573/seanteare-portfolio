@@ -1,0 +1,43 @@
+---
+import '../styles/design-system.css';
+import '../styles/site.css';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const DEFAULT_DESCRIPTION =
+  'Sean Teare — 15+ years architecting distributed systems, cloud-native APIs, and full-stack platforms, now building agentic AI-native engineering workflows.';
+
+const { title, description = DEFAULT_DESCRIPTION } = Astro.props;
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <meta name="generator" content={Astro.generator} />
+  </head>
+  <body>
+    <div class="page-shell">
+      <Nav />
+      <slot />
+      <Footer />
+    </div>
+  </body>
+</html>
