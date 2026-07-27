@@ -35,6 +35,18 @@ variable "github_branch" {
   default     = "main"
 }
 
+variable "github_environment" {
+  description = <<-EOT
+    GitHub Actions environment used by the deploy and apply jobs. This has to be
+    in the OIDC trust policy: when a job declares `environment:`, GitHub swaps
+    the token's `sub` claim from the ref form to
+    `repo:<owner>/<repo>:environment:<name>`, so a ref-only trust policy fails
+    to assume.
+  EOT
+  type        = string
+  default     = "production"
+}
+
 variable "price_class" {
   description = "CloudFront edge coverage. PriceClass_100 is North America + Europe and is the cheapest."
   type        = string

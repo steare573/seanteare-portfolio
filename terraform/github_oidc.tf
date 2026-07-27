@@ -30,13 +30,26 @@ data "aws_iam_policy_document" "github_assume_role" {
       values   = ["sts.amazonaws.com"]
     }
 
-    # Pinning `sub` to a specific ref is what stops a fork or an arbitrary
-    # branch from assuming the role. Without it, any workflow in any repo that
-    # can reach this account could deploy.
+    # Pinning `sub` is what stops a fork or an arbitrary branch from assuming
+    # the role. Without it, any workflow in any repo that can reach this account
+    # could deploy.
+    #
+    # BOTH forms are required. GitHub changes the sub claim depending on whether
+    # the job declares an environment:
+    #   no environment  -> repo:<owner>/<repo>:ref:refs/heads/main
+    #   environment set -> repo:<owner>/<repo>:environment:production
+    # Our deploy and apply jobs both set `environment: production`, so the ref
+    # form alone would fail with a trust-policy mismatch on the first run.
+    #
+    # Because the environment form carries no branch, restrict which branches
+    # may deploy to it under repo Settings > Environments > Deployment branches.
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:ref:refs/heads/${var.github_branch}"]
+      values = [
+        "repo:${var.github_repo}:ref:refs/heads/${var.github_branch}",
+        "repo:${var.github_repo}:environment:${var.github_environment}",
+      ]
     }
   }
 }
