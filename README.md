@@ -17,7 +17,7 @@ npm run dev      # http://localhost:4321/seanteare-portfolio
 | `npm run preview` | Serve `dist/` exactly as it will deploy |
 | `npm run check` | Type-check `.astro` and `.ts` files |
 
-Requires Node 18.20+, 20.3+, or 22+. This repo was built against Node 22/24.
+Requires Node 18.20+, 20.3+, or 22+. Local development and CI both run Node 24.
 
 ## Adding a blog post
 
