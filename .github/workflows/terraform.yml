@@ -28,7 +28,7 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: '1.10.5'
+          terraform_version: '1.15.8'
 
       - name: Format check
         run: terraform fmt -check -recursive -diff
@@ -49,7 +49,7 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: '1.10.5'
+          terraform_version: '1.15.8'
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:

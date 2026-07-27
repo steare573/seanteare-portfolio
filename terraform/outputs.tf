@@ -4,7 +4,7 @@ output "nameservers" {
     Domain > Nameservers > Custom DNS to complete the DNS migration.
     Nothing moves until you do.
   EOT
-  value = aws_route53_zone.site.name_servers
+  value       = aws_route53_zone.site.name_servers
 }
 
 output "zone_id" {

@@ -5,8 +5,8 @@
  */
 
 resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
 
   # AWS stopped validating this thumbprint for GitHub's provider in 2023 (it
   # trusts the CA chain directly), but the API still requires the field.
