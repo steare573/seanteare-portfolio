@@ -100,9 +100,11 @@ strips underscore-prefixed paths.
 
 ## Known gaps
 
-- **The résumé Download PDF button 404s.** `public/Sean-Teare-Resume.pdf` does not
-  exist yet. Drop the file there and the button works — no code change. This link
-  was already dead before the migration.
+- **Keep the résumé PDF public-safe.** The Download button serves
+  `public/Sean-Teare-Resume.pdf` verbatim. Replacing that file updates the
+  download with no code change — but it is committed to a public repo, so scrub
+  the phone number and home address from any version you drop in. The current
+  file lists email, LinkedIn, and GitHub only.
 - **Caprasimo is bundled but unused.** The design ships the "Clean Sans" heading
   preset (Figtree bold). The Caprasimo `@font-face` rules and font files are still
   in place, so switching presets is a two-line change. If you commit to Clean Sans

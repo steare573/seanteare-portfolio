@@ -4,8 +4,8 @@ import Icon from '../components/Icon.astro';
 import { SKILLS, EXPERIENCE, PROFILE } from '../data/resume';
 import { path } from '../lib/paths';
 
-// NOTE: this file does not exist yet — drop the PDF at public/Sean-Teare-Resume.pdf
-// and the button starts working. The link was already dead on the previous site.
+// Served from public/, so replacing that file updates the download with no
+// code change. Keep the public copy free of the phone number and home address.
 const resumePdf = path('/Sean-Teare-Resume.pdf');
 ---
 
