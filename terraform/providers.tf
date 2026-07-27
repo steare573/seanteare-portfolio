@@ -23,6 +23,11 @@ locals {
     ManagedBy = "terraform"
     Repo      = var.github_repo
   }
+
+  # Split "owner/repo" so the OIDC trust policy can match GitHub's immutable
+  # subject claims, which embed numeric IDs after each segment.
+  gh_owner = split("/", var.github_repo)[0]
+  gh_repo  = split("/", var.github_repo)[1]
 }
 
 data "aws_caller_identity" "current" {}

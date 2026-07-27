@@ -34,21 +34,35 @@ data "aws_iam_policy_document" "github_assume_role" {
     # the role. Without it, any workflow in any repo that can reach this account
     # could deploy.
     #
-    # BOTH forms are required. GitHub changes the sub claim depending on whether
-    # the job declares an environment:
-    #   no environment  -> repo:<owner>/<repo>:ref:refs/heads/main
-    #   environment set -> repo:<owner>/<repo>:environment:production
-    # Our deploy and apply jobs both set `environment: production`, so the ref
-    # form alone would fail with a trust-policy mismatch on the first run.
+    # Two independent things vary in this claim, and both were verified against
+    # a real token rather than assumed:
     #
-    # Because the environment form carries no branch, restrict which branches
-    # may deploy to it under repo Settings > Environments > Deployment branches.
+    # 1. Environment. When a job declares `environment:`, GitHub replaces the
+    #    ref filter with an environment filter:
+    #      no environment  -> ...:ref:refs/heads/main
+    #      environment set -> ...:environment:production
+    #    Both CI jobs set an environment, so the ref form alone never matches.
+    #
+    # 2. Immutable IDs. GitHub now issues subject claims carrying numeric owner
+    #    and repository IDs, so the identity survives a rename:
+    #      classic   -> repo:steare573/seanteare-portfolio:...
+    #      immutable -> repo:steare573@898480/seanteare-portfolio@1314133354:...
+    #    The observed token uses the immutable form.
+    #
+    # StringLike is used only to wildcard the numeric IDs. Owner name, repo
+    # name, and the environment/ref remain exact, so this is no looser than an
+    # exact match on identity — it just tolerates both claim formats.
+    #
+    # The environment form carries no branch, so restrict which branches may
+    # deploy under Settings > Environments > Deployment branches.
     condition {
-      test     = "StringEquals"
+      test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
       values = [
         "repo:${var.github_repo}:ref:refs/heads/${var.github_branch}",
         "repo:${var.github_repo}:environment:${var.github_environment}",
+        "repo:${local.gh_owner}@*/${local.gh_repo}@*:ref:refs/heads/${var.github_branch}",
+        "repo:${local.gh_owner}@*/${local.gh_repo}@*:environment:${var.github_environment}",
       ]
     }
   }
