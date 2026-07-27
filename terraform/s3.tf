@@ -1,6 +1,13 @@
 resource "aws_s3_bucket" "site" {
   bucket = var.bucket_name
 
+  # Pre-existing tag, kept deliberately. provider default_tags replace the tag
+  # set rather than merging with untracked tags, so without this line the
+  # apply would silently strip it.
+  tags = {
+    site = "seanteare.com"
+  }
+
   # The bucket predates this config and holds the live site. Losing it would
   # mean re-pointing the distribution, so make `terraform destroy` refuse.
   lifecycle {
