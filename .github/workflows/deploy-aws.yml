@@ -19,6 +19,8 @@ on:
     paths-ignore:
       - 'terraform/**'
       - '.github/workflows/terraform.yml'
+      - '.github/workflows/site.yml'
+      - '.github/dependabot.yml'
       - '*.md'
   workflow_dispatch:
 
