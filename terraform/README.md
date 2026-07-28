@@ -135,6 +135,31 @@ Add the ARN to `data.aws_iam_policy_document.terraform` and apply that alone
 first, from a workstation, then apply the role itself. Or do the whole thing
 locally in one pass, which amounts to the same thing.
 
+## Approving a queued apply
+
+A workflow run holds the commit it was triggered for. The required-reviewer
+rule means an apply can sit waiting for a while, and in that time `main` can
+move on.
+
+Approving a stale run therefore applies a stale tree: Terraform plans that older
+config against the current live state, sees a difference, and reverts whatever
+landed in between. It reports success, because it did exactly what its own
+commit said.
+
+This happened once. Two applies were approved a couple of minutes apart in the
+wrong order, and the older one silently rolled back the IAM scoping the newer
+one had just applied.
+
+Two guards now exist, and neither removes the need to look:
+
+- `terraform.yml` declares a `concurrency` group, so a run still waiting for
+  approval is superseded when a newer one arrives instead of queueing behind it.
+- The apply job refuses to run when its commit is not the current tip of `main`,
+  and says which commit it expected.
+
+**Check what you are approving.** The run's title names its commit. If it is not
+the newest thing on `main`, cancel it and re-run Terraform from the current tip.
+
 ## Order of operations
 
 The domain is currently **suspended for failed WHOIS verification** at Namecheap
