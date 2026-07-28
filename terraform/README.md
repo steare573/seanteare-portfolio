@@ -80,6 +80,46 @@ terraform apply
 `plan` and `import` only read AWS. Neither mutates the account — only `apply`
 does.
 
+## When CI fails on a missing IAM permission
+
+The pipeline role grants a hand-written list of actions, so a change that
+touches a resource in a way nothing has touched before can fail at `apply` with
+`AccessDenied`. This happened once already, on `iam:UpdateAssumeRolePolicy`.
+
+It cannot fix itself. Terraform updates a role before the inline policy attached
+to it, so the failing resource is reached first and the run aborts before the
+policy that would grant the permission is applied. `-target` does not help
+either — it pulls dependencies in and tries to update them too.
+
+Recovery needs credentials that already have the permission. Add the action to
+the config first, then apply once from a workstation:
+
+```bash
+cd terraform
+terraform init
+terraform plan     # confirm it is only what you expect
+terraform apply
+```
+
+Subsequent runs work from CI again, because the role now grants the action.
+
+To keep everything in CI instead, grant just the missing action out-of-band and
+re-run the failed workflow:
+
+```bash
+aws iam put-role-policy \
+  --role-name seanteare-terraform \
+  --policy-name bootstrap-missing-permission \
+  --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"iam:UpdateAssumeRolePolicy","Resource":"*"}]}'
+```
+
+Delete it once the real policy has caught up, or it silently becomes permanent:
+
+```bash
+aws iam delete-role-policy \
+  --role-name seanteare-terraform --policy-name bootstrap-missing-permission
+```
+
 ## Order of operations
 
 The domain is currently **suspended for failed WHOIS verification** at Namecheap

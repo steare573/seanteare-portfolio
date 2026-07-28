@@ -153,24 +153,51 @@ data "aws_iam_policy_document" "terraform" {
       "cloudfront:*",
       "acm:*",
       "route53:*",
+      # Roles. `iam:UpdateRole` covers only the description and max session
+      # duration — editing a *trust* policy is a separate action, and its
+      # absence is what broke the apply for commit 85ea5e6. Nothing had ever
+      # exercised it: the earlier trust-policy change went in from a local
+      # apply, and every CI run since reported "No changes", so the gap sat
+      # unnoticed until CI first had to modify a live role.
+      #
+      # The rest of this block is the remainder of the same lifecycle, listed
+      # so the next tag removal or client-ID edit is not another broken main.
       "iam:GetRole",
       "iam:GetRolePolicy",
       "iam:ListRolePolicies",
       "iam:ListAttachedRolePolicies",
+      "iam:ListRoleTags",
       "iam:CreateRole",
       "iam:DeleteRole",
       "iam:UpdateRole",
+      "iam:UpdateAssumeRolePolicy",
       "iam:PutRolePolicy",
       "iam:DeleteRolePolicy",
       "iam:TagRole",
+      "iam:UntagRole",
       "iam:ListInstanceProfilesForRole",
+
+      # OIDC provider.
       "iam:GetOpenIDConnectProvider",
       "iam:CreateOpenIDConnectProvider",
       "iam:DeleteOpenIDConnectProvider",
       "iam:UpdateOpenIDConnectProviderThumbprint",
+      "iam:AddClientIDToOpenIDConnectProvider",
+      "iam:RemoveClientIDFromOpenIDConnectProvider",
+      "iam:ListOpenIDConnectProviderTags",
       "iam:TagOpenIDConnectProvider",
+      "iam:UntagOpenIDConnectProvider",
+
       "sts:GetCallerIdentity",
     ]
+
+    # TODO: scope the IAM actions to the two role ARNs and the OIDC provider
+    # ARN. `iam:UpdateAssumeRolePolicy` on "*" lets this role rewrite the trust
+    # policy of any role in the account — including pointing one at an external
+    # principal. That is not a new exposure (`iam:CreateRole` and
+    # `iam:PutRolePolicy` on "*" are already sufficient to escalate), which is
+    # why it is not being changed in the same commit that unbreaks main. It
+    # should be a separate, reviewable change once CI can apply again.
     resources = ["*"]
   }
 }
