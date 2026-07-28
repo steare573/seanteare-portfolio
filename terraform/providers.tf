@@ -37,5 +37,3 @@ locals {
     terraform = var.github_environment
   }
 }
-
-data "aws_caller_identity" "current" {}

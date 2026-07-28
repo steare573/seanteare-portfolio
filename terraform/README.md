@@ -127,6 +127,10 @@ the specific role and provider ARNs it owns, so a *new* role fails at
 `CreateRole` — Terraform creates the role before it updates the policy that
 would have allowed it.
 
+**Renaming** an existing role is the same trap wearing a different hat: the new
+name is a new ARN, so `CreateRole` is evaluated against a resource the policy
+does not list yet.
+
 Add the ARN to `data.aws_iam_policy_document.terraform` and apply that alone
 first, from a workstation, then apply the role itself. Or do the whole thing
 locally in one pass, which amounts to the same thing.

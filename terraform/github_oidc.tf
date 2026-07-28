@@ -222,7 +222,10 @@ data "aws_iam_policy_document" "terraform" {
     resources = [aws_iam_openid_connect_provider.github.arn]
   }
 
-  # Does not support resource-level permissions.
+  # No resource-level permissions, and AWS documents GetCallerIdentity as
+  # requiring no permission at all — an explicit deny cannot block it. Kept
+  # because configure-aws-credentials calls it on every run, and a redundant
+  # Allow costs nothing next to a pipeline broken on a documentation reading.
   statement {
     sid       = "ReadOwnIdentity"
     effect    = "Allow"
