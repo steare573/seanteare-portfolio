@@ -44,7 +44,15 @@ jobs:
     # the one that can rewrite infrastructure. See terraform/github_oidc.tf.
     environment: production-content
     steps:
+      # fetch-depth: 0 is load-bearing. Blog posts show a "last updated" time
+      # read from the commit that last touched each post file
+      # (src/lib/lastUpdated.ts). The default shallow checkout fetches one
+      # commit, so every post would resolve to the same date and the pages would
+      # render plausible, wrong timestamps rather than fail. The build warns if
+      # this is ever dropped.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       # .nvmrc is the single source of truth, so local and CI cannot drift.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
