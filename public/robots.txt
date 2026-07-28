@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Points at the index, not sitemap-0.xml — crawlers follow the index down to
+# the pages file, and the index is the stable name as the site grows.
+#
+# Search Console can be told about the sitemap directly, but most other engines
+# have no equivalent and read it from here. Absolute URL is required.
+Sitemap: https://seanteare.com/sitemap-index.xml
