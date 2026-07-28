@@ -12,6 +12,21 @@ permissions:
   contents: read
   id-token: write # required for OIDC
 
+# Applies are serialised, and a run still waiting for approval is superseded by
+# a newer one rather than queueing behind it.
+#
+# Without this, two applies were approved out of order and the older one won:
+# #8's run was created against a commit predating #9, sat waiting for review,
+# and when approved it planned its own older tree against the newer live state,
+# saw a difference, and reverted #9's IAM scoping. Both runs reported success —
+# each did exactly what its own tree said.
+#
+# cancel-in-progress stays false: an apply that has already started must finish
+# rather than be killed part-way through mutating infrastructure.
+concurrency:
+  group: terraform
+  cancel-in-progress: false
+
 defaults:
   run:
     working-directory: terraform
@@ -64,6 +79,23 @@ jobs:
     # be used to switch off the very rules gating this pipeline.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Belt to the concurrency group's braces. A run holds the commit it was
+      # triggered for, so approving a stale one applies a stale tree and reverts
+      # whatever landed since. Concurrency should stop such a run existing; this
+      # stops it applying if one slips through.
+      - name: Refuse to apply a superseded commit
+        if: github.event_name == 'push'
+        run: |
+          git fetch --depth=1 origin main
+          head="$(git rev-parse HEAD)"
+          tip="$(git rev-parse FETCH_HEAD)"
+          if [ "$head" != "$tip" ]; then
+            echo "::error::This run is for ${head:0:8}, but main is now ${tip:0:8}." \
+                 "Applying would revert everything merged in between." \
+                 "Re-run Terraform from the current main instead."
+            exit 1
+          fi
 
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
