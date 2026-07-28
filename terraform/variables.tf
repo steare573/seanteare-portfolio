@@ -93,8 +93,18 @@ variable "email_forwarding_mx" {
 variable "txt_records" {
   description = "Apex TXT records to preserve (SPF for the forwarder, plus site verification)."
   type        = list(string)
+  # Every apex TXT value lives in this one list because Route 53 keys a record
+  # set by (name, type): a second aws_route53_record for the apex TXT would not
+  # add a value, it would fight this one for ownership of the whole set.
+  #
+  # Both Google tokens are kept. A domain can hold several at once, each bound
+  # to whichever account verified with it, so dropping one silently unverifies
+  # whatever relied on it. Removing a stale token is its own decision.
+  #
+  # The SPF value is what makes email forwarding work. It fails silently.
   default = [
     "v=spf1 include:spf.efwd.registrar-servers.com ~all",
     "google-site-verification=pBeJ6_H3U6ZgQqwqzC1nSSY8jhqD1eEYtH1bWL406zE",
+    "google-site-verification=XfnZaiAyd15ExDPn2rhHinEp6FWAA3kXQZT5lOzBix4",
   ]
 }
