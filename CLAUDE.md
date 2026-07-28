@@ -14,21 +14,22 @@ shows what changed.
 ## What this is
 
 Sean Teare's personal portfolio and blog. Astro, static output, no JavaScript
-shipped to the browser. Deployed to GitHub Pages via
-`.github/workflows/deploy.yml` on push to `main`.
+shipped to the browser. Deployed to S3 + CloudFront (`seanteare.com`) via
+`.github/workflows/deploy-aws.yml` on push to `main`.
 
 ## Commands
 
-Node is not on the default PATH — it is installed via nvm:
+Node is not on the default PATH — it is installed via nvm, and the version is
+pinned in `.nvmrc`. Prefix any command that runs node:
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v24.15.0/bin:$PATH"
+source "$HOME/.nvm/nvm.sh" && nvm use
 ```
 
 ```bash
-npm run dev        # http://localhost:4321/seanteare-portfolio
+npm run dev        # http://localhost:4321
 npm run build      # static build to dist/
-npm run preview    # serve dist/ with the base path applied
+npm run preview    # serve dist/ exactly as it deploys
 npm run check      # astro check — run before committing
 ```
 
@@ -62,8 +63,9 @@ These each cost a debugging cycle already. Don't rediscover them.
   selector and silently collapses paragraph spacing.
 - **Astro frontmatter.** A multi-line `export type X = | 'a' | 'b'` union in a
   component's frontmatter fails to parse. Use `keyof typeof` off a const object.
-- **`public/.nojekyll` is load-bearing.** Astro emits `_astro/`, and Jekyll
-  strips underscore-prefixed paths.
+- **`public/.nojekyll` is inert now.** It mattered on GitHub Pages, where Jekyll
+  stripped the underscore-prefixed `_astro/` paths Astro emits. S3 does not care.
+  Harmless to keep, harmless to delete.
 
 ## Style
 

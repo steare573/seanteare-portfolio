@@ -1,14 +1,10 @@
 name: Deploy to AWS
 
-# Manual-only until the cutover is done. The site still has base
-# '/seanteare-portfolio' in astro.config.mjs, so a build published to
-# seanteare.com right now would 404 on every asset.
-#
-# At cutover, after astro.config.mjs is updated, replace workflow_dispatch with:
-#   push:
-#     branches: [main]
-# and delete .github/workflows/deploy.yml (the GitHub Pages one).
+# workflow_dispatch is kept alongside the push trigger — it redeploys the
+# current main without needing a commit.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -26,9 +22,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # .nvmrc is the single source of truth, so local and CI cannot drift.
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: '.nvmrc'
           cache: npm
 
       - run: npm ci

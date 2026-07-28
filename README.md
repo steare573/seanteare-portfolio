@@ -6,8 +6,9 @@ static output, zero JavaScript shipped to the browser.
 ## Quick start
 
 ```bash
+nvm use          # Node version is pinned in .nvmrc
 npm install
-npm run dev      # http://localhost:4321/seanteare-portfolio
+npm run dev      # http://localhost:4321
 ```
 
 | Command | Does |
@@ -17,7 +18,8 @@ npm run dev      # http://localhost:4321/seanteare-portfolio
 | `npm run preview` | Serve `dist/` exactly as it will deploy |
 | `npm run check` | Type-check `.astro` and `.ts` files |
 
-Requires Node 18.20+, 20.3+, or 22+. Local development and CI both run Node 24.
+Astro needs Node 18.20+, 20.3+, or 22+. `.nvmrc` pins 24, and CI reads the same
+file via `node-version-file`, so local and CI cannot drift.
 
 ## Adding a blog post
 
@@ -85,18 +87,19 @@ site moves together.
 
 ## Deploying
 
-Pushing to `main` triggers `.github/workflows/deploy.yml`, which builds and
-publishes to GitHub Pages.
+Pushing to `main` triggers `.github/workflows/deploy-aws.yml`, which builds the
+site, syncs `dist/` to S3, and invalidates CloudFront. The job runs in the
+`production` environment, so it waits for approval before it publishes. The same
+workflow can be run from the Actions tab to redeploy without a commit.
 
-**One-time setup:** Settings → Pages → Source → **GitHub Actions**.
+Infrastructure — bucket, distribution, certificate, DNS, and the OIDC roles CI
+assumes — lives in [`terraform/`](./terraform/README.md).
 
-The site deploys as a project page, so every URL is prefixed with the repo name.
-That prefix comes from `base` in `astro.config.mjs`, and all internal links go
-through `path()` in `src/lib/paths.ts`. To move to a custom domain: drop `base`,
-set `site` to the domain, and add a `CNAME` file to `public/`. No template edits.
+Two sync passes run, because the right cache header differs by file type: Astro
+fingerprints everything under `_astro/`, so those are immutable and cached for a
+year, while HTML keeps its URL across deploys and must revalidate.
 
-`public/.nojekyll` is required — Astro emits a `_astro/` directory and Jekyll
-strips underscore-prefixed paths.
+`public/.nojekyll` is a leftover from GitHub Pages and no longer load-bearing.
 
 ## Known gaps
 
