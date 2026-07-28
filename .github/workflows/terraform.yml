@@ -4,7 +4,8 @@ on:
   pull_request:
     paths: ['terraform/**', '.github/workflows/terraform.yml']
   push:
-    branches: [main]
+    # develop is checked, never applied — see the job conditions below.
+    branches: [main, develop]
     paths: ['terraform/**', '.github/workflows/terraform.yml']
   workflow_dispatch:
 
@@ -40,7 +41,9 @@ jobs:
   # Both roots are validated here. terraform/github/ is applied by hand rather
   # than by CI, which is exactly why it needs a check that runs automatically.
   validate:
-    if: github.event_name == 'pull_request'
+    # Pull requests against any base, plus the merged result on develop, which
+    # has no apply step to catch a problem later.
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -65,7 +68,11 @@ jobs:
           terraform validate
 
   plan_apply:
-    if: github.event_name != 'pull_request'
+    # main only. The ref check is what keeps a push to develop from applying:
+    # `!= pull_request` alone would let one through now that develop is a
+    # trigger. The environment's deployment branch policy would also refuse it,
+    # but a job that never starts beats one rejected at the gate.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     # This environment carries the required-reviewer rule, so an apply waits for
     # approval. The rule is created in terraform/github/, not here. The site
