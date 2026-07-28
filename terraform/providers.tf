@@ -28,6 +28,14 @@ locals {
   # subject claims, which embed numeric IDs after each segment.
   gh_owner = split("/", var.github_repo)[0]
   gh_repo  = split("/", var.github_repo)[1]
+
+  # Which Actions environment each CI role is allowed to be assumed from.
+  # Keyed by role so the two never share a trust document — see github_oidc.tf.
+  # The environments themselves are created in terraform/github/.
+  github_role_environments = {
+    deploy    = var.github_content_environment
+    terraform = var.github_environment
+  }
 }
 
 data "aws_caller_identity" "current" {}

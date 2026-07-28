@@ -22,6 +22,10 @@ ACM certificate, Route 53 zone, and the GitHub OIDC roles the pipeline uses.
 | `aws_route53_zone` + records | new |
 | GitHub OIDC provider + `deploy` / `terraform` roles | new |
 
+Repository settings — Actions environments, protection rules, branch protection
+— live in a **separate root** at [`github/`](./github/README.md) with its own
+state, applied by hand rather than by CI. That directory explains why.
+
 The bucket and distribution are **imported, not recreated**. A replacement
 distribution would get a new `*.cloudfront.net` name and 15–20 minutes of
 downtime; importing makes this an in-place update.
@@ -57,6 +61,13 @@ aws s3api put-public-access-block --bucket seanteare-tfstate \
 The first `apply` also has to run from local credentials — the role the pipeline
 assumes does not exist until Terraform creates it.
 
+### GitHub credentials
+
+None. This root uses the AWS provider only.
+
+Repository settings need a repo-admin GitHub credential, which is exactly why
+they are not here — see [`github/README.md`](./github/README.md).
+
 ## Running it
 
 ```bash
@@ -85,12 +96,13 @@ until that is cleared.
 5. The blocked apply completes once ACM sees the validation records.
 6. Set repo Actions **variables**: `AWS_TERRAFORM_ROLE_ARN`,
    `AWS_DEPLOY_ROLE_ARN`, `AWS_SITE_BUCKET`, `AWS_DISTRIBUTION_ID` — all
-   available as Terraform outputs.
+   available as Terraform outputs. Then apply [`github/`](./github/README.md),
+   which creates the environments the workflows deploy through.
 7. Update `astro.config.mjs`: remove `base`, set `site = "https://seanteare.com"`.
    **Required** — otherwise every URL keeps the `/seanteare-portfolio/` prefix.
 8. Add `src/pages/404.astro` so the CloudFront error mapping has a page.
-9. Run `deploy-aws.yml` manually, verify, then switch it to `push: [main]` and
-   delete `deploy.yml` (the GitHub Pages workflow).
+9. Run `deploy-aws.yml` manually and verify. It now also runs on push to
+   `main`; `deploy.yml` (the GitHub Pages workflow) is already gone.
 
 ## DNS records carried over
 

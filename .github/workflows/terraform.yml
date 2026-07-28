@@ -17,9 +17,13 @@ defaults:
     working-directory: terraform
 
 jobs:
-  # Runs on PRs with NO cloud credentials. The OIDC trust policy is pinned to
-  # refs/heads/main, so a PR cannot assume the role — by design. Formatting and
-  # schema validation still catch most mistakes before merge.
+  # Runs on PRs with NO credentials of any kind. The OIDC trust policy accepts
+  # only the environment form of the subject claim, and this job declares no
+  # environment, so it cannot assume a role — by design. Formatting and schema
+  # validation still catch most mistakes before merge.
+  #
+  # Both roots are validated here. terraform/github/ is applied by hand rather
+  # than by CI, which is exactly why it needs a check that runs automatically.
   validate:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -33,7 +37,14 @@ jobs:
       - name: Format check
         run: terraform fmt -check -recursive -diff
 
-      - name: Validate
+      - name: Validate the AWS root
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      # `validate` never contacts an API, so this needs no GitHub credential.
+      - name: Validate the GitHub root
+        working-directory: terraform/github
         run: |
           terraform init -backend=false
           terraform validate
@@ -41,9 +52,16 @@ jobs:
   plan_apply:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    # Add required reviewers to this environment in repo settings so an apply
-    # cannot reach production unattended.
+    # This environment carries the required-reviewer rule, so an apply waits for
+    # approval. The rule is created in terraform/github/, not here. The site
+    # deploy runs in a different, unreviewed environment; the two are not
+    # interchangeable, and each maps to a different IAM role.
     environment: production
+    #
+    # This job applies the AWS root only. terraform/github/ manages repo
+    # settings — environments, protection rules, branch protection — and is
+    # applied from a workstation on purpose: a repo-admin credential here could
+    # be used to switch off the very rules gating this pipeline.
     steps:
       - uses: actions/checkout@v4
 

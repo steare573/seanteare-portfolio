@@ -13,8 +13,15 @@ resource "aws_iam_openid_connect_provider" "github" {
   thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
 }
 
-# Trust conditions shared by both roles: this repo, this branch, nothing else.
+# One trust document per role, each naming exactly one environment.
+#
+# A single shared document would undo the gate: the content-deploy environment
+# has no required reviewer, so any subject good enough to deploy content would
+# also be good enough to assume the terraform role, which can reshape the CDN,
+# IAM, and DNS. Each role trusts only the environment its own job runs in.
 data "aws_iam_policy_document" "github_assume_role" {
+  for_each = local.github_role_environments
+
   statement {
     effect  = "Allow"
     actions = ["sts:AssumeRoleWithWebIdentity"]
@@ -41,7 +48,16 @@ data "aws_iam_policy_document" "github_assume_role" {
     #    ref filter with an environment filter:
     #      no environment  -> ...:ref:refs/heads/main
     #      environment set -> ...:environment:production
-    #    Both CI jobs set an environment, so the ref form alone never matches.
+    #
+    #    ONLY the environment form is accepted here. Accepting the ref form
+    #    alongside it would leave the protection rules trivially bypassable: the
+    #    rules attach to the environment, so a job on main that simply omits
+    #    `environment:` would emit the ref form, match, and assume the role with
+    #    no reviewer and no branch policy in the way. Both jobs declare an
+    #    environment, so the ref form has no legitimate use — only that one.
+    #
+    #    A new job that needs AWS must therefore declare an environment. That is
+    #    the intended constraint, not an oversight.
     #
     # 2. Immutable IDs. GitHub now issues subject claims carrying numeric owner
     #    and repository IDs, so the identity survives a rename:
@@ -50,19 +66,18 @@ data "aws_iam_policy_document" "github_assume_role" {
     #    The observed token uses the immutable form.
     #
     # StringLike is used only to wildcard the numeric IDs. Owner name, repo
-    # name, and the environment/ref remain exact, so this is no looser than an
-    # exact match on identity — it just tolerates both claim formats.
+    # name, and the environment remain exact, so this is no looser than an exact
+    # match on identity — it just tolerates both claim formats.
     #
-    # The environment form carries no branch, so restrict which branches may
-    # deploy under Settings > Environments > Deployment branches.
+    # The environment form carries no branch, so the branch restriction has to
+    # live in the environment's deployment branch policy — see
+    # github/environments.tf.
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
       values = [
-        "repo:${var.github_repo}:ref:refs/heads/${var.github_branch}",
-        "repo:${var.github_repo}:environment:${var.github_environment}",
-        "repo:${local.gh_owner}@*/${local.gh_repo}@*:ref:refs/heads/${var.github_branch}",
-        "repo:${local.gh_owner}@*/${local.gh_repo}@*:environment:${var.github_environment}",
+        "repo:${var.github_repo}:environment:${each.value}",
+        "repo:${local.gh_owner}@*/${local.gh_repo}@*:environment:${each.value}",
       ]
     }
   }
@@ -75,7 +90,7 @@ data "aws_iam_policy_document" "github_assume_role" {
 resource "aws_iam_role" "deploy" {
   name               = "seanteare-site-deploy"
   description        = "GitHub Actions: sync built site to S3 and invalidate CloudFront"
-  assume_role_policy = data.aws_iam_policy_document.github_assume_role.json
+  assume_role_policy = data.aws_iam_policy_document.github_assume_role["deploy"].json
 }
 
 data "aws_iam_policy_document" "deploy" {
@@ -119,13 +134,14 @@ resource "aws_iam_role_policy" "deploy" {
 #
 # Scoped to the services this stack touches rather than AdministratorAccess.
 # It is still broad: it can reshape the CDN and IAM roles for this project, so
-# the branch pin above is doing real work.
+# the environment pin above is doing real work — that environment is the one
+# carrying the required-reviewer rule.
 # ---------------------------------------------------------------------------
 
 resource "aws_iam_role" "terraform" {
   name               = "seanteare-terraform"
   description        = "GitHub Actions: terraform plan and apply for the site stack"
-  assume_role_policy = data.aws_iam_policy_document.github_assume_role.json
+  assume_role_policy = data.aws_iam_policy_document.github_assume_role["terraform"].json
 }
 
 data "aws_iam_policy_document" "terraform" {
