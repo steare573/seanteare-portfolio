@@ -3,6 +3,7 @@ import { getCollection, render, type CollectionEntry } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import Icon from '../../components/Icon.astro';
 import { path, monthYear } from '../../lib/paths';
+import { lastUpdated, easternTimestamp } from '../../lib/lastUpdated';
 
 export async function getStaticPaths() {
   const posts = await getCollection('blog', ({ data }) =>
@@ -20,6 +21,7 @@ interface Props {
 
 const { post } = Astro.props;
 const { Content } = await render(post);
+const updated = lastUpdated(post);
 ---
 
 <Base title={`${post.data.title} — Sean Teare`} description={post.data.excerpt}>
@@ -38,10 +40,13 @@ const { Content } = await render(post);
       {post.data.tag} · {monthYear(post.data.date)} · {post.data.readTime}
     </div>
     <h1
-      style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px, 4vw, 42px); line-height: 1.2; margin: 0 0 28px;"
+      style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: clamp(30px, 4vw, 42px); line-height: 1.2; margin: 0 0 10px;"
     >
       {post.data.title}
     </h1>
+    <div class="text-muted" style="font-size: 13px; margin: 0 0 28px;">
+      Last updated <time datetime={updated.toISOString()}>{easternTimestamp(updated)}</time>
+    </div>
     <div class="prose">
       <Content />
     </div>
