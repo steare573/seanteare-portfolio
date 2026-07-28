@@ -1,5 +1,8 @@
-import { defineCollection, z } from 'astro:content';
+import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
+// Re-exported from 'astro:content' until Astro 7 deprecated it. Same zod,
+// different entry point.
+import { z } from 'astro/zod';
 
 // Blog posts are plain markdown in src/content/blog/. Add a file, get a page —
 // the index and the post route both build themselves from this collection.

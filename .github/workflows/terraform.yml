@@ -4,13 +4,29 @@ on:
   pull_request:
     paths: ['terraform/**', '.github/workflows/terraform.yml']
   push:
-    branches: [main]
+    # develop is checked, never applied — see the job conditions below.
+    branches: [main, develop]
     paths: ['terraform/**', '.github/workflows/terraform.yml']
   workflow_dispatch:
 
 permissions:
   contents: read
   id-token: write # required for OIDC
+
+# Applies are serialised, and a run still waiting for approval is superseded by
+# a newer one rather than queueing behind it.
+#
+# Without this, two applies were approved out of order and the older one won:
+# #8's run was created against a commit predating #9, sat waiting for review,
+# and when approved it planned its own older tree against the newer live state,
+# saw a difference, and reverted #9's IAM scoping. Both runs reported success —
+# each did exactly what its own tree said.
+#
+# cancel-in-progress stays false: an apply that has already started must finish
+# rather than be killed part-way through mutating infrastructure.
+concurrency:
+  group: terraform
+  cancel-in-progress: false
 
 defaults:
   run:
@@ -25,12 +41,14 @@ jobs:
   # Both roots are validated here. terraform/github/ is applied by hand rather
   # than by CI, which is exactly why it needs a check that runs automatically.
   validate:
-    if: github.event_name == 'pull_request'
+    # Pull requests against any base, plus the merged result on develop, which
+    # has no apply step to catch a problem later.
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: '1.15.8'
 
@@ -50,7 +68,11 @@ jobs:
           terraform validate
 
   plan_apply:
-    if: github.event_name != 'pull_request'
+    # main only. The ref check is what keeps a push to develop from applying:
+    # `!= pull_request` alone would let one through now that develop is a
+    # trigger. The environment's deployment branch policy would also refuse it,
+    # but a job that never starts beats one rejected at the gate.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     # This environment carries the required-reviewer rule, so an apply waits for
     # approval. The rule is created in terraform/github/, not here. The site
@@ -63,13 +85,30 @@ jobs:
     # applied from a workstation on purpose: a repo-admin credential here could
     # be used to switch off the very rules gating this pipeline.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: hashicorp/setup-terraform@v3
+      # Belt to the concurrency group's braces. A run holds the commit it was
+      # triggered for, so approving a stale one applies a stale tree and reverts
+      # whatever landed since. Concurrency should stop such a run existing; this
+      # stops it applying if one slips through.
+      - name: Refuse to apply a superseded commit
+        if: github.event_name == 'push'
+        run: |
+          git fetch --depth=1 origin main
+          head="$(git rev-parse HEAD)"
+          tip="$(git rev-parse FETCH_HEAD)"
+          if [ "$head" != "$tip" ]; then
+            echo "::error::This run is for ${head:0:8}, but main is now ${tip:0:8}." \
+                 "Applying would revert everything merged in between." \
+                 "Re-run Terraform from the current main instead."
+            exit 1
+          fi
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: '1.15.8'
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
           role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
           aws-region: us-east-1

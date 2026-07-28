@@ -1,0 +1,38 @@
+version: 2
+
+# The workflows pin every action to a commit SHA rather than a moving major
+# tag, because both of them hold `id-token: write` and one writes to the
+# production bucket — a repointed tag would run arbitrary code with those
+# credentials. SHAs remove that risk and replace it with a maintenance cost,
+# which is what this file pays.
+#
+# Dependabot understands SHA pins: it bumps the SHA and rewrites the trailing
+# `# vX.Y.Z` comment, so the version stays readable in review.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: Bump
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      # Astro and its type tooling move together; separate PRs for each would
+      # be noise on a site with three direct dependencies.
+      astro:
+        patterns: ['astro', '@astrojs/*']
+    # TypeScript 7 is held back by @astrojs/check, whose peer range stops at
+    # ^6.0.0 as of 0.9.10 — installing 7 fails `npm ci` outright on ERESOLVE
+    # rather than degrading. Lift this once a release widens that peer.
+    ignore:
+      - dependency-name: typescript
+        versions: ['>=7']
+    commit-message:
+      prefix: Bump

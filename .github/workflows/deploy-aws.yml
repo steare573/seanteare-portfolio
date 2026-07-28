@@ -1,14 +1,27 @@
 name: Deploy to AWS
 
-# Manual-only until the cutover is done. The site still has base
-# '/seanteare-portfolio' in astro.config.mjs, so a build published to
-# seanteare.com right now would 404 on every asset.
-#
-# At cutover, after astro.config.mjs is updated, replace workflow_dispatch with:
-#   push:
-#     branches: [main]
-# and delete .github/workflows/deploy.yml (the GitHub Pages one).
+# workflow_dispatch is kept alongside the push trigger — it redeploys the
+# current main without needing a commit.
 on:
+  push:
+    branches: [main]
+    # Skip pushes that cannot change what is published. Each of these would
+    # otherwise rebuild, run two `s3 sync --delete` passes, and invalidate the
+    # whole distribution to produce a byte-identical site.
+    #
+    # Scoped to root-level markdown on purpose. `**/*.md` would look equivalent
+    # and would silently stop publishing blog posts, which live in
+    # src/content/blog/*.md. GitHub's `*` does not match `/`, so `*.md` reaches
+    # README.md and CLAUDE.md and nothing under src/.
+    #
+    # A push touching one of these AND a real file still deploys — the run is
+    # skipped only when every changed path matches.
+    paths-ignore:
+      - 'terraform/**'
+      - '.github/workflows/terraform.yml'
+      - '.github/workflows/site.yml'
+      - '.github/dependabot.yml'
+      - '*.md'
   workflow_dispatch:
 
 permissions:
@@ -22,19 +35,27 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production
+    # Not `production` — that environment carries a required reviewer, and
+    # gating content behind a manual approval on every push is what this change
+    # exists to remove. This one is pinned to main but runs unattended.
+    #
+    # The separation is also what keeps this job's IAM role narrow: each
+    # environment maps to exactly one role, so a content deploy cannot assume
+    # the one that can rewrite infrastructure. See terraform/github_oidc.tf.
+    environment: production-content
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v4
+      # .nvmrc is the single source of truth, so local and CI cannot drift.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24
+          node-version-file: '.nvmrc'
           cache: npm
 
       - run: npm ci
       - run: npm run build
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: us-east-1
