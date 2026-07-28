@@ -1,0 +1,50 @@
+name: Site
+
+# Builds and type-checks the site on every pull request.
+#
+# This exists because nothing else does it before merge. `deploy-aws.yml` runs
+# on push to main, and `terraform.yml` only on terraform paths, so a dependency
+# bump could reach an open pull request with no check at all — which is how a
+# `typescript@7` bump that fails `npm ci` outright on ERESOLVE got as far as it
+# did. The first symptom would otherwise be a broken deploy on main.
+#
+# Deliberately NOT filtered by paths. A path-filtered job never starts on a pull
+# request that misses the filter, and a required status check that never starts
+# blocks that pull request forever — the trap already documented in
+# terraform/github/branches.tf. Always running costs about a minute and keeps
+# this safe to mark required.
+on:
+  pull_request:
+
+# No cloud credentials, no environment, nothing to assume. This runs the
+# repository's own dependencies, so it gets read access and nothing more.
+permissions:
+  contents: read
+
+concurrency:
+  group: site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      # `npm ci` rather than `npm install` on purpose: it fails on a lockfile
+      # that disagrees with package.json, and on an unsatisfiable peer range,
+      # instead of quietly resolving something else.
+      - run: npm ci
+
+      # Catches a bad content schema too — frontmatter is validated at build
+      # time, so a malformed post fails here rather than rendering empty.
+      - name: Build
+        run: npm run build
+
+      - name: Type check
+        run: npm run check

@@ -97,7 +97,10 @@ the ones that wait for a human, and they go through `terraform.yml` and a
 different environment. The same workflow can be run from the Actions tab to
 redeploy without a commit.
 
-`main` is protected: changes arrive by pull request, not direct push.
+`main` is protected: changes arrive by pull request, not direct push. Every pull
+request builds and type-checks the site via `.github/workflows/site.yml`, so a
+dependency bump that fails to install shows up before merge rather than as a
+broken deploy.
 
 Infrastructure — bucket, distribution, certificate, DNS, and the OIDC roles CI
 assumes — lives in [`terraform/`](./terraform/README.md).
