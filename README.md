@@ -18,8 +18,11 @@ npm run dev      # http://localhost:4321
 | `npm run preview` | Serve `dist/` exactly as it will deploy |
 | `npm run check` | Type-check `.astro` and `.ts` files |
 
-Astro needs Node 18.20+, 20.3+, or 22+. `.nvmrc` pins 24, and CI reads the same
-file via `node-version-file`, so local and CI cannot drift.
+Astro needs Node 18.20+, 20.3+, or 22+. `.nvmrc` pins the major version, and CI
+reads the same file via `node-version-file`, so the two cannot land on different
+majors. They can still differ within 24.x — `nvm use` takes the newest version
+installed locally, CI takes the newest released. Pin the full version in
+`.nvmrc` if that ever matters.
 
 ## Adding a blog post
 
@@ -88,9 +91,13 @@ site moves together.
 ## Deploying
 
 Pushing to `main` triggers `.github/workflows/deploy-aws.yml`, which builds the
-site, syncs `dist/` to S3, and invalidates CloudFront. The job runs in the
-`production` environment, so it waits for approval before it publishes. The same
-workflow can be run from the Actions tab to redeploy without a commit.
+site, syncs `dist/` to S3, and invalidates CloudFront. It runs unattended —
+publishing is idempotent and the bucket is versioned. Infrastructure changes are
+the ones that wait for a human, and they go through `terraform.yml` and a
+different environment. The same workflow can be run from the Actions tab to
+redeploy without a commit.
+
+`main` is protected: changes arrive by pull request, not direct push.
 
 Infrastructure — bucket, distribution, certificate, DNS, and the OIDC roles CI
 assumes — lives in [`terraform/`](./terraform/README.md).
