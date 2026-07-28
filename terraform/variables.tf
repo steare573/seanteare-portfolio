@@ -37,14 +37,31 @@ variable "github_branch" {
 
 variable "github_environment" {
   description = <<-EOT
-    GitHub Actions environment used by the deploy and apply jobs. This has to be
+    GitHub Actions environment used by the Terraform apply job. This has to be
     in the OIDC trust policy: when a job declares `environment:`, GitHub swaps
     the token's `sub` claim from the ref form to
     `repo:<owner>/<repo>:environment:<name>`, so a ref-only trust policy fails
     to assume.
+
+    Carries the required-reviewer rule. Infrastructure changes wait for a human.
   EOT
   type        = string
   default     = "production"
+}
+
+variable "github_content_environment" {
+  description = <<-EOT
+    GitHub Actions environment used by the site deploy job. Deliberately
+    separate from `github_environment` and deliberately without reviewers:
+    publishing content is idempotent and the bucket is versioned, so gating it
+    behind a manual approval buys nothing and would make every push wait.
+
+    Splitting it also keeps the two IAM roles apart. Sharing one environment
+    would mean the trust policy could not tell a content deploy from an
+    infrastructure apply.
+  EOT
+  type        = string
+  default     = "production-content"
 }
 
 variable "price_class" {
@@ -76,4 +93,14 @@ variable "txt_records" {
     "v=spf1 include:spf.efwd.registrar-servers.com ~all",
     "google-site-verification=pBeJ6_H3U6ZgQqwqzC1nSSY8jhqD1eEYtH1bWL406zE",
   ]
+}
+
+variable "github_develop_branch" {
+  description = <<-EOT
+    Integration branch, created and protected by Terraform. Nothing deploys from
+    it — the environment branch policies stay pinned to `github_branch` — it
+    exists so work can accumulate behind a protected ref before reaching main.
+  EOT
+  type        = string
+  default     = "develop"
 }

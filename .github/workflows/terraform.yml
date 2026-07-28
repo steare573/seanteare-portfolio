@@ -41,18 +41,30 @@ jobs:
   plan_apply:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    # Required reviewers and a main-only branch policy on this environment are
-    # themselves managed by Terraform — see terraform/github_environment.tf.
+    # This environment carries the required-reviewer rule, so an apply waits for
+    # approval. The rule is itself managed by Terraform — see
+    # terraform/github_environment.tf. The site deploy runs in a different,
+    # unreviewed environment; the two are not interchangeable, and each maps to
+    # a different IAM role.
     environment: production
-    # The GitHub provider manages that environment, which needs repo-admin
-    # rights. The Actions-issued GITHUB_TOKEN cannot be granted them (there is
-    # no `permissions:` key for environment administration), so this is a
-    # fine-grained PAT stored as a repo secret. Both plan and apply need it —
-    # plan reads the owner's user ID.
-    env:
-      GITHUB_TOKEN: ${{ secrets.TF_GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+
+      # The `validate` job above never evaluates data sources, so a missing or
+      # expired token passes on the pull request and only fails here. Say so
+      # plainly instead of surfacing it as a provider auth error 40 lines into
+      # a plan.
+      - name: Check the GitHub token is present
+        env:
+          GITHUB_TOKEN: ${{ secrets.TF_GITHUB_TOKEN }}
+        run: |
+          if [ -z "$GITHUB_TOKEN" ]; then
+            echo "::error::TF_GITHUB_TOKEN is not set. The GitHub provider manages the" \
+                 "Actions environments and branch protection, and cannot authenticate" \
+                 "without it. Create a fine-grained PAT with Administration and Contents" \
+                 "write, then: gh secret set TF_GITHUB_TOKEN"
+            exit 1
+          fi
 
       - uses: hashicorp/setup-terraform@v3
         with:
@@ -65,11 +77,19 @@ jobs:
 
       - run: terraform init
 
+      # GITHUB_TOKEN is set per step rather than on the job, so it is absent
+      # from the environment of `npm`, the AWS action, and anything else that
+      # does not need a repo-admin credential. Plan needs it too — it reads the
+      # owner's user ID for the reviewer list.
       - name: Plan
         id: plan
+        env:
+          GITHUB_TOKEN: ${{ secrets.TF_GITHUB_TOKEN }}
         run: terraform plan -input=false -out=tfplan
 
       # Applies the saved plan, so what was reviewed is exactly what runs.
       - name: Apply
         if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.TF_GITHUB_TOKEN }}
         run: terraform apply -input=false -auto-approve tfplan
