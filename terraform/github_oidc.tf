@@ -145,23 +145,43 @@ resource "aws_iam_role" "terraform" {
 }
 
 data "aws_iam_policy_document" "terraform" {
+  # The site services. Still broad — narrowing these to the bucket,
+  # distribution, certificate, and hosted zone is worth doing, but it is a
+  # different change with a different risk profile.
   statement {
-    sid    = "ManageSiteStack"
+    sid    = "ManageSiteServices"
     effect = "Allow"
     actions = [
       "s3:*",
       "cloudfront:*",
       "acm:*",
       "route53:*",
-      # Roles. `iam:UpdateRole` covers only the description and max session
-      # duration — editing a *trust* policy is a separate action, and its
-      # absence is what broke the apply for commit 85ea5e6. Nothing had ever
-      # exercised it: the earlier trust-policy change went in from a local
-      # apply, and every CI run since reported "No changes", so the gap sat
-      # unnoticed until CI first had to modify a live role.
-      #
-      # The rest of this block is the remainder of the same lifecycle, listed
-      # so the next tag removal or client-ID edit is not another broken main.
+    ]
+    resources = ["*"]
+  }
+
+  # IAM, scoped to the two roles this stack owns.
+  #
+  # On "*" these actions are an escalation primitive rather than merely broad
+  # access: `iam:CreateRole` plus `iam:PutRolePolicy` is enough to mint an admin
+  # role and assume it, and `iam:UpdateAssumeRolePolicy` can repoint any
+  # existing role at an external principal. That put every gate around this
+  # pipeline — required reviewers, branch protection, environment-scoped OIDC —
+  # downstream of a credential able to dissolve them.
+  #
+  # `iam:UpdateRole` covers only a role's description and max session duration.
+  # Editing a trust policy is `iam:UpdateAssumeRolePolicy`, whose absence broke
+  # the apply for 85ea5e6.
+  #
+  # Note these are role ARNs throughout: the resource for `PutRolePolicy` and
+  # `GetRolePolicy` is the role, not the policy. `aws_iam_role.terraform.arn`
+  # therefore has to stay in this list or the role loses the ability to edit its
+  # own policy — and that is unrecoverable from CI, because Terraform reaches a
+  # role before the inline policy attached to it.
+  statement {
+    sid    = "ManageOwnCiRoles"
+    effect = "Allow"
+    actions = [
       "iam:GetRole",
       "iam:GetRolePolicy",
       "iam:ListRolePolicies",
@@ -176,8 +196,19 @@ data "aws_iam_policy_document" "terraform" {
       "iam:TagRole",
       "iam:UntagRole",
       "iam:ListInstanceProfilesForRole",
+    ]
+    resources = [
+      aws_iam_role.deploy.arn,
+      aws_iam_role.terraform.arn,
+    ]
+  }
 
-      # OIDC provider.
+  # The OIDC provider, scoped to itself. `CreateOpenIDConnectProvider` takes the
+  # provider ARN as its resource, so this still permits a rebuild from empty.
+  statement {
+    sid    = "ManageOidcProvider"
+    effect = "Allow"
+    actions = [
       "iam:GetOpenIDConnectProvider",
       "iam:CreateOpenIDConnectProvider",
       "iam:DeleteOpenIDConnectProvider",
@@ -187,17 +218,18 @@ data "aws_iam_policy_document" "terraform" {
       "iam:ListOpenIDConnectProviderTags",
       "iam:TagOpenIDConnectProvider",
       "iam:UntagOpenIDConnectProvider",
-
-      "sts:GetCallerIdentity",
     ]
+    resources = [aws_iam_openid_connect_provider.github.arn]
+  }
 
-    # TODO: scope the IAM actions to the two role ARNs and the OIDC provider
-    # ARN. `iam:UpdateAssumeRolePolicy` on "*" lets this role rewrite the trust
-    # policy of any role in the account — including pointing one at an external
-    # principal. That is not a new exposure (`iam:CreateRole` and
-    # `iam:PutRolePolicy` on "*" are already sufficient to escalate), which is
-    # why it is not being changed in the same commit that unbreaks main. It
-    # should be a separate, reviewable change once CI can apply again.
+  # No resource-level permissions, and AWS documents GetCallerIdentity as
+  # requiring no permission at all — an explicit deny cannot block it. Kept
+  # because configure-aws-credentials calls it on every run, and a redundant
+  # Allow costs nothing next to a pipeline broken on a documentation reading.
+  statement {
+    sid       = "ReadOwnIdentity"
+    effect    = "Allow"
+    actions   = ["sts:GetCallerIdentity"]
     resources = ["*"]
   }
 }
