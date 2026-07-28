@@ -17,6 +17,14 @@ provider "aws" {
   }
 }
 
+# Authenticates from GITHUB_TOKEN in the environment. Managing an environment's
+# protection rules needs repo-admin rights, which the Actions-issued GITHUB_TOKEN
+# cannot be granted — `permissions:` has no key for it. CI therefore supplies a
+# fine-grained PAT; see the README.
+provider "github" {
+  owner = local.gh_owner
+}
+
 locals {
   tags = {
     Project   = "seanteare-portfolio"

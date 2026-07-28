@@ -21,6 +21,7 @@ ACM certificate, Route 53 zone, and the GitHub OIDC roles the pipeline uses.
 | `aws_acm_certificate` + validation | new |
 | `aws_route53_zone` + records | new |
 | GitHub OIDC provider + `deploy` / `terraform` roles | new |
+| `production` Actions environment protection rules | new |
 
 The bucket and distribution are **imported, not recreated**. A replacement
 distribution would get a new `*.cloudfront.net` name and 15–20 minutes of
@@ -57,6 +58,28 @@ aws s3api put-public-access-block --bucket seanteare-tfstate \
 The first `apply` also has to run from local credentials — the role the pipeline
 assumes does not exist until Terraform creates it.
 
+### GitHub credentials
+
+`github_environment.tf` manages the `production` Actions environment, which
+needs repo-admin rights. The Actions-issued `GITHUB_TOKEN` **cannot** be granted
+them — there is no `permissions:` key for environment administration — so the
+provider takes a fine-grained PAT instead.
+
+Create one scoped to this repository with **Administration: read and write**,
+then:
+
+```bash
+# locally
+export GITHUB_TOKEN=github_pat_...
+
+# in CI
+gh secret set TF_GITHUB_TOKEN
+```
+
+**Set the secret before merging any change that touches `terraform/`.** Without
+it the plan fails reading `data.github_user.owner`, which takes the whole
+Terraform pipeline down, not just the environment resources.
+
 ## Running it
 
 ```bash
@@ -85,7 +108,8 @@ until that is cleared.
 5. The blocked apply completes once ACM sees the validation records.
 6. Set repo Actions **variables**: `AWS_TERRAFORM_ROLE_ARN`,
    `AWS_DEPLOY_ROLE_ARN`, `AWS_SITE_BUCKET`, `AWS_DISTRIBUTION_ID` — all
-   available as Terraform outputs.
+   available as Terraform outputs. Set the `TF_GITHUB_TOKEN` **secret** at the
+   same time (see [GitHub credentials](#github-credentials)).
 7. Update `astro.config.mjs`: remove `base`, set `site = "https://seanteare.com"`.
    **Required** — otherwise every URL keeps the `/seanteare-portfolio/` prefix.
 8. Add `src/pages/404.astro` so the CloudFront error mapping has a page.

@@ -41,9 +41,16 @@ jobs:
   plan_apply:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    # Add required reviewers to this environment in repo settings so an apply
-    # cannot reach production unattended.
+    # Required reviewers and a main-only branch policy on this environment are
+    # themselves managed by Terraform — see terraform/github_environment.tf.
     environment: production
+    # The GitHub provider manages that environment, which needs repo-admin
+    # rights. The Actions-issued GITHUB_TOKEN cannot be granted them (there is
+    # no `permissions:` key for environment administration), so this is a
+    # fine-grained PAT stored as a repo secret. Both plan and apply need it —
+    # plan reads the owner's user ID.
+    env:
+      GITHUB_TOKEN: ${{ secrets.TF_GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 

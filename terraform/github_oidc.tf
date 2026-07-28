@@ -53,8 +53,9 @@ data "aws_iam_policy_document" "github_assume_role" {
     # name, and the environment/ref remain exact, so this is no looser than an
     # exact match on identity — it just tolerates both claim formats.
     #
-    # The environment form carries no branch, so restrict which branches may
-    # deploy under Settings > Environments > Deployment branches.
+    # The environment form carries no branch, so the branch restriction has to
+    # live in the environment's deployment branch policy — see
+    # github_environment.tf.
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
