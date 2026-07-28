@@ -97,10 +97,33 @@ the ones that wait for a human, and they go through `terraform.yml` and a
 different environment. The same workflow can be run from the Actions tab to
 redeploy without a commit.
 
-`main` is protected: changes arrive by pull request, not direct push. Every pull
-request builds and type-checks the site via `.github/workflows/site.yml`, so a
-dependency bump that fails to install shows up before merge rather than as a
-broken deploy.
+## Branches
+
+```
+feature  ->  develop  ->  main  ->  deploy
+```
+
+Both `main` and `develop` are protected: changes arrive by pull request, not
+direct push, and that applies to admins too.
+
+Nothing deploys from `develop`. Both Actions environments pin their deployment
+branch policy to `main`, and `deploy-aws.yml` only triggers on push to `main`,
+so a merge into `develop` publishes nothing.
+
+It is still checked, because an unverified integration branch is worse than no
+integration branch:
+
+| Check | Runs on |
+|---|---|
+| `site.yml` — build + type check | every pull request, and every push to `develop` |
+| `terraform.yml` — fmt + validate, both roots | every pull request, and every push to `develop` |
+| `terraform.yml` — plan + apply | pushes to `main` only |
+
+The apply job is pinned to `main` by an explicit `github.ref` check rather than
+relying on the trigger list, since `develop` is now a trigger too.
+
+Every pull request builds and type-checks the site, so a dependency bump that
+fails to install shows up before merge rather than as a broken deploy.
 
 Infrastructure — bucket, distribution, certificate, DNS, and the OIDC roles CI
 assumes — lives in [`terraform/`](./terraform/README.md).

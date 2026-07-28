@@ -15,6 +15,10 @@ name: Site
 # this safe to mark required.
 on:
   pull_request:
+  # develop takes merges but never deploys, so nothing downstream would notice a
+  # broken build. This is the only thing watching it.
+  push:
+    branches: [develop]
 
 # No cloud credentials, no environment, nothing to assume. This runs the
 # repository's own dependencies, so it gets read access and nothing more.
