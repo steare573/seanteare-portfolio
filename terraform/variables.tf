@@ -43,7 +43,9 @@ variable "github_environment" {
     `repo:<owner>/<repo>:environment:<name>`, so a ref-only trust policy fails
     to assume.
 
-    Carries the required-reviewer rule. Infrastructure changes wait for a human.
+    Created in terraform/github/, which also attaches the required-reviewer rule.
+    The two roots must agree on this name or the apply job cannot assume its
+    role.
   EOT
   type        = string
   default     = "production"
@@ -59,6 +61,8 @@ variable "github_content_environment" {
     Splitting it also keeps the two IAM roles apart. Sharing one environment
     would mean the trust policy could not tell a content deploy from an
     infrastructure apply.
+
+    Created in terraform/github/. The two roots must agree on this name.
   EOT
   type        = string
   default     = "production-content"
@@ -93,14 +97,4 @@ variable "txt_records" {
     "v=spf1 include:spf.efwd.registrar-servers.com ~all",
     "google-site-verification=pBeJ6_H3U6ZgQqwqzC1nSSY8jhqD1eEYtH1bWL406zE",
   ]
-}
-
-variable "github_develop_branch" {
-  description = <<-EOT
-    Integration branch, created and protected by Terraform. Nothing deploys from
-    it — the environment branch policies stay pinned to `github_branch` — it
-    exists so work can accumulate behind a protected ref before reaching main.
-  EOT
-  type        = string
-  default     = "develop"
 }

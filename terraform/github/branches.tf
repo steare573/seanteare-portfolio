@@ -1,7 +1,7 @@
 /**
  * Branch protection.
  *
- * The environment rules in github_environment.tf answer "which branch may
+ * The environment rules in environments.tf answer "which branch may
  * deploy". They say nothing about who may put commits on that branch. Until
  * these rules exist, `main` accepts a direct push from anyone with write
  * access, and that push publishes to production.

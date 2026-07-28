@@ -71,7 +71,7 @@ data "aws_iam_policy_document" "github_assume_role" {
     #
     # The environment form carries no branch, so the branch restriction has to
     # live in the environment's deployment branch policy — see
-    # github_environment.tf.
+    # github/environments.tf.
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"

@@ -6,14 +6,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
-
-    # Manages the `production` Actions environment. The OIDC trust policy can no
-    # longer pin a branch on its own once a job declares `environment:`, so the
-    # branch restriction lives here instead. See github_environment.tf.
-    github = {
-      source  = "integrations/github"
-      version = "~> 6.0"
-    }
   }
 
   # Remote state. The bucket must exist BEFORE the first `terraform init` —

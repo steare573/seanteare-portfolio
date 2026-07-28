@@ -17,14 +17,6 @@ provider "aws" {
   }
 }
 
-# Authenticates from GITHUB_TOKEN in the environment. Managing an environment's
-# protection rules needs repo-admin rights, which the Actions-issued GITHUB_TOKEN
-# cannot be granted — `permissions:` has no key for it. CI therefore supplies a
-# fine-grained PAT; see the README.
-provider "github" {
-  owner = local.gh_owner
-}
-
 locals {
   tags = {
     Project   = "seanteare-portfolio"
@@ -39,6 +31,7 @@ locals {
 
   # Which Actions environment each CI role is allowed to be assumed from.
   # Keyed by role so the two never share a trust document — see github_oidc.tf.
+  # The environments themselves are created in terraform/github/.
   github_role_environments = {
     deploy    = var.github_content_environment
     terraform = var.github_environment

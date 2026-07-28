@@ -21,8 +21,10 @@ ACM certificate, Route 53 zone, and the GitHub OIDC roles the pipeline uses.
 | `aws_acm_certificate` + validation | new |
 | `aws_route53_zone` + records | new |
 | GitHub OIDC provider + `deploy` / `terraform` roles | new |
-| `production` + `production-content` Actions environments | new |
-| Branch protection on `main` and `develop` | new |
+
+Repository settings — Actions environments, protection rules, branch protection
+— live in a **separate root** at [`github/`](./github/README.md) with its own
+state, applied by hand rather than by CI. That directory explains why.
 
 The bucket and distribution are **imported, not recreated**. A replacement
 distribution would get a new `*.cloudfront.net` name and 15–20 minutes of
@@ -61,59 +63,10 @@ assumes does not exist until Terraform creates it.
 
 ### GitHub credentials
 
-`github_environment.tf` manages the `production` Actions environment, which
-needs repo-admin rights. The Actions-issued `GITHUB_TOKEN` **cannot** be granted
-them — there is no `permissions:` key for environment administration — so the
-provider takes a fine-grained PAT instead.
+None. This root uses the AWS provider only.
 
-Create one scoped to this repository with **Administration: read and write**
-(environments and branch protection) and **Contents: read and write** (creating
-the `develop` branch), then:
-
-```bash
-# locally
-export GITHUB_TOKEN=github_pat_...
-
-# in CI
-gh secret set TF_GITHUB_TOKEN
-```
-
-**Set the secret before merging any change that touches `terraform/`.** Without
-it the plan fails reading `data.github_user.owner`, which takes the whole
-Terraform pipeline down, not just the GitHub resources. The workflow checks for
-it up front and fails with that message rather than a provider stack trace, but
-it cannot check on the pull request — `terraform validate` never evaluates data
-sources, so the failure only appears after merge.
-
-The token expires. When it does, every Terraform run fails on authentication.
-The keyless alternative is a GitHub App via `actions/create-github-app-token`,
-which is worth the setup if this ever grows past one repository.
-
-## What actually gates production
-
-Four separate mechanisms, each covering a gap the others cannot:
-
-| Gate | Stops |
-|---|---|
-| Branch protection on `main` | Direct pushes. Changes arrive by pull request, including the maintainer's — `enforce_admins` is on. |
-| Deployment branch policy | A job on any other branch deploying through these environments. |
-| Required reviewers on `production` | An infrastructure apply running unattended. |
-| OIDC trust policy | Any repo, any branch, or any job without an environment assuming the roles at all. |
-
-The reviewer rule is the weakest of the four and should be read honestly: one
-maintainer means the reviewer is the person who pushed, self-review is allowed,
-and admins can bypass. It stops an apply from happening *unattended*. It is not
-an authorization boundary.
-
-The trust policy accepts **only** the environment form of the OIDC subject
-claim. A job that omits `environment:` cannot assume either role — which is
-deliberate, because the protection rules attach to the environment, so accepting
-the ref form would let any job skip all of the above by leaving one line out.
-
-Branch protection requires zero approving reviews. GitHub does not let an author
-approve their own pull request, so on a single-maintainer repo any higher number
-is unsatisfiable and nothing could merge. The rule doing the work is that a pull
-request is required at all.
+Repository settings need a repo-admin GitHub credential, which is exactly why
+they are not here — see [`github/README.md`](./github/README.md).
 
 ## Running it
 
@@ -143,8 +96,8 @@ until that is cleared.
 5. The blocked apply completes once ACM sees the validation records.
 6. Set repo Actions **variables**: `AWS_TERRAFORM_ROLE_ARN`,
    `AWS_DEPLOY_ROLE_ARN`, `AWS_SITE_BUCKET`, `AWS_DISTRIBUTION_ID` — all
-   available as Terraform outputs. Set the `TF_GITHUB_TOKEN` **secret** at the
-   same time (see [GitHub credentials](#github-credentials)).
+   available as Terraform outputs. Then apply [`github/`](./github/README.md),
+   which creates the environments the workflows deploy through.
 7. Update `astro.config.mjs`: remove `base`, set `site = "https://seanteare.com"`.
    **Required** — otherwise every URL keeps the `/seanteare-portfolio/` prefix.
 8. Add `src/pages/404.astro` so the CloudFront error mapping has a page.

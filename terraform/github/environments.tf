@@ -13,7 +13,7 @@
  * manual approval on every push would be friction without a corresponding gain.
  *
  * The split is also load-bearing for IAM. Each environment maps to exactly one
- * role in github_oidc.tf, so an unreviewed content deploy cannot assume the
+ * role in ../github_oidc.tf, so an unreviewed content deploy cannot assume the
  * role that can rewrite infrastructure.
  */
 
